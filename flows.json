@@ -1,0 +1,282 @@
+[
+    {
+        "id": "3b7087a16f19437b",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "6497ea0f13cead4c",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "Direct JSON",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 490,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "19d06378ca70646d",
+        "type": "aedes broker",
+        "z": "3b7087a16f19437b",
+        "name": "Broker",
+        "mqtt_port": 1883,
+        "mqtt_ws_bind": "port",
+        "mqtt_ws_port": "",
+        "mqtt_ws_path": "",
+        "cert": "",
+        "key": "",
+        "certname": "",
+        "keyname": "",
+        "persistence_bind": "memory",
+        "dburl": "",
+        "usetls": false,
+        "x": 70,
+        "y": 180,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "d9312785d01f22fc",
+        "type": "mqtt in",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "topic": "natak/2/json/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "ef5bb54e270b13dc",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 90,
+        "y": 260,
+        "wires": [
+            [
+                "6497ea0f13cead4c",
+                "e3746f3f7abd8815",
+                "958e6cb35d32565f"
+            ]
+        ]
+    },
+    {
+        "id": "e3746f3f7abd8815",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "function 2",
+        "func": "// User-editable mapping of node IDs to custom names\nconst nodeNameMap = {\n    60911977: \"RAK 7169\",\n    862591952: \"Heltec 1BD0\",\n    // Add more mappings as needed\n};\n\n// Function to format latitude and longitude\nfunction formatCoordinate(coord) {\n    return (coord / 1e7).toFixed(6);\n}\n\n// Function to get custom name for a node ID\nfunction getNodeName(nodeId) {\n    return nodeNameMap[nodeId] || `Unknown Device (${nodeId})`;\n}\n\n// Parse the incoming message\nlet payload = msg.payload;\n\n// Ensure the payload is an object (parse JSON if it's a string)\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch (e) {\n        node.error(\"Failed to parse JSON: \" + e.message);\n        return null;\n    }\n}\n\n// Extract the node ID\nlet nodeId = payload.from || 'unknown';\n\n// Initialize the output object\nlet output = {\n    nodeName: getNodeName(nodeId),\n    nodeId: nodeId,\n    type: payload.type\n};\n\n// Process payload based on message type\nif (payload.type === 'position') {\n    output.position = {\n        latitude: formatCoordinate(payload.payload.latitude_i),\n        longitude: formatCoordinate(payload.payload.longitude_i),\n        time: new Date(payload.payload.time * 1000).toISOString()\n    };\n} else if (payload.type === 'text') {\n    output.text = payload.payload.text;\n}\n\n// Prepare the output message\nmsg.payload = output;\n\n// Send the output\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 340,
+        "wires": [
+            [
+                "b573a4403361d1ca"
+            ]
+        ]
+    },
+    {
+        "id": "b573a4403361d1ca",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "Edited JSON",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 490,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "382bb23835bd8a8e",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "JSON to CoT format",
+        "func": "// Function to generate a UUID\nfunction generateUUID() {\n    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n    });\n}\n\n// Function to get the stale time (10 minutes from now)\nfunction getStaleTime() {\n    return new Date(Date.now() + 10 * 60 * 1000).toISOString();\n}\n\n// Parse the incoming message\nlet payload = msg.payload;\n\n// Ensure the payload is an object (parse JSON if it's a string)\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch (e) {\n        node.error(\"Failed to parse JSON: \" + e.message);\n        return null;\n    }\n}\n\n// Get current time\nlet currentTime = new Date(payload.timestamp * 1000).toISOString();\n\n// Create CoT JSON object\nlet cotJson = {\n    \"event\": {\n        \"_attributes\": {\n            \"version\": \"2.0\",\n            \"uid\": generateUUID(),\n            \"type\": \"a-f-G-U-C\",\n            \"how\": \"m-g\",\n            \"time\": currentTime,\n            \"start\": currentTime,\n            \"stale\": getStaleTime()\n        },\n        \"point\": {\n            \"_attributes\": {\n                \"lat\": payload.type === 'position' ? (payload.payload.latitude_i / 1e7).toString() : \"0\",\n                \"lon\": payload.type === 'position' ? (payload.payload.longitude_i / 1e7).toString() : \"0\",\n                \"hae\": \"0\",\n                \"ce\": \"9999999\",\n                \"le\": \"9999999\"\n            }\n        },\n        \"detail\": {\n            \"contact\": {\n                \"_attributes\": {\n                    \"callsign\": `Meshtastic_${payload.from}`\n                }\n            },\n            \"remarks\": {\n                \"_text\": payload.type === 'position' ? \"Position update\" : payload.payload.text\n            }\n        }\n    }\n};\n\n// Set the output payload to the CoT JSON object\nmsg.payload = cotJson;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 140,
+        "y": 60,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fbe2f1920186c0cd",
+        "type": "tak",
+        "z": "3b7087a16f19437b",
+        "name": "TAK",
+        "x": 510,
+        "y": 100,
+        "wires": [
+            [
+                "8455260be5b544af",
+                "ccd6d57011447c4e"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "8455260be5b544af",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "CoT output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 690,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "958e6cb35d32565f",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "JSON to CoT2",
+        "func": "// Function to generate a UUID\nfunction generateUUID() {\n    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);\n        return v.toString(16);\n    });\n}\n\n// Function to get the stale time (10 minutes from now)\nfunction getStaleTime() {\n    return new Date(Date.now() + 10 * 60 * 1000).toISOString();\n}\n\n// Parse the incoming message\nlet payload = msg.payload;\n\n// Ensure the payload is an object (parse JSON if it's a string)\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.parse(payload);\n    } catch (e) {\n        node.error(\"Failed to parse JSON: \" + e.message);\n        return null;\n    }\n}\n\n// Get current time\nlet currentTime = new Date(payload.timestamp * 1000).toISOString();\n\n// Create CoT JSON object\nlet cotJson = {\n    \"event\": {\n        \"_attributes\": {\n            \"version\": \"2.0\",\n            \"uid\": generateUUID(),\n            \"type\": \"a-f-G-U-C\",\n            \"how\": \"m-g\",\n            \"time\": currentTime,\n            \"start\": currentTime,\n            \"stale\": getStaleTime()\n        },\n        \"point\": {\n            \"_attributes\": {\n                \"lat\": payload.type === 'position' ? (payload.payload.latitude_i / 1e7).toString() : \"0\",\n                \"lon\": payload.type === 'position' ? (payload.payload.longitude_i / 1e7).toString() : \"0\",\n                \"hae\": \"0\",\n                \"ce\": \"9999999\",\n                \"le\": \"9999999\"\n            }\n        },\n        \"detail\": {\n            \"contact\": {\n                \"_attributes\": {\n                    \"callsign\": `Meshtastic_${payload.from}`\n                }\n            },\n            \"remarks\": {\n                \"_text\": payload.type === 'position' ? \"Position update\" : (payload.payload && payload.payload.text ? payload.payload.text : \"No text available\")\n            }\n        }\n    }\n};\n\n// Set the output payload to the CoT JSON object\nmsg.payload = cotJson;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 180,
+        "wires": [
+            [
+                "fbe2f1920186c0cd",
+                "b5aa55272c59d96c"
+            ]
+        ]
+    },
+    {
+        "id": "b5aa55272c59d96c",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "Full JSON object",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 530,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "ccd6d57011447c4e",
+        "type": "tcp request",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "server": "localhost",
+        "port": "8089",
+        "out": "sit",
+        "ret": "buffer",
+        "splitc": " ",
+        "newline": "",
+        "trim": false,
+        "tls": "8ffdde82eeb40ceb",
+        "x": 710,
+        "y": 140,
+        "wires": [
+            [
+                "c1bd88b480430f14"
+            ]
+        ]
+    },
+    {
+        "id": "c1bd88b480430f14",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "TCP Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 950,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "ef5bb54e270b13dc",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "8ffdde82eeb40ceb",
+        "type": "tls-config",
+        "name": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "nodered.pem",
+        "keyname": "noderedkey2.pem",
+        "caname": "nodered-trusted.pem",
+        "servername": "",
+        "verifyservercert": false,
+        "alpnprotocol": ""
+    }
+]
