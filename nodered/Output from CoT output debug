@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<event version="2.0" uid="6a262ceb-9a01-4592-990d-f949f5cf211f" type="a-f-G-U-C" how="m-g" time="2024-07-24T23:44:27.000Z" start="2024-07-24T23:44:27.000Z" stale="2024-07-24T23:54:30.789Z">
+  <point lat="0" lon="0" hae="0" ce="9999999" le="9999999"/>
+  <detail>
+    <contact callsign="Meshtastic_862591952"/>
+    <remarks>This is an example message</remarks>
+  </detail>
+</event>
