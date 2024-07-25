@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<event version="2.0" uid="MESHTASTIC.862591952.574253585" how="m-g" time="2024-07-25T23:10:22.000Z" start="2024-07-25T23:10:22.000Z" stale="2024-07-25T23:20:22.000Z" type="b-t-f">
+<event version="2.0" uid="MESHTASTIC.60911977.1973623073" how="m-g" time="2024-07-25T23:23:25.000Z" start="2024-07-25T23:23:25.000Z" stale="2024-07-25T23:33:25.000Z" type="a-f-G-U-C">
+  <point lat="27.9825004" lon="-82.4612538" hae="11" ce="10" le="10"/>
+  <detail>
+    <takv platform="Meshtastic" device="Node-RED" os="Node-RED" version="1.0"/>
+    <contact callsign="MESH-60911977"/>
+    <uid Droid="MESH-60911977"/>
+  </detail>
+</event>
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<event version="2.0" uid="MESHTASTIC.862591952.574253612" how="m-g" time="2024-07-25T23:23:45.000Z" start="2024-07-25T23:23:45.000Z" stale="2024-07-25T23:33:45.000Z" type="b-t-f">
   <point lat="0" lon="0" hae="0" ce="9999999" le="9999999"/>
   <detail>
     <takv platform="Meshtastic" device="Node-RED" os="Node-RED" version="1.0"/>
     <contact callsign="MESH-862591952"/>
     <uid Droid="MESH-862591952"/>
-    <remarks>Test went through</remarks>
-  </detail>
-</event>
-
-
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<event version="2.0" uid="MESHTASTIC.0.1073699194" how="m-g" time="1970-01-01T00:00:00.000Z" start="1970-01-01T00:00:00.000Z" stale="1970-01-01T00:10:00.000Z" type="a-u-G">
-  <point lat="0" lon="0" hae="0" ce="9999999" le="9999999"/>
-  <detail>
-    <takv platform="Meshtastic" device="Node-RED" os="Node-RED" version="1.0"/>
-    <contact callsign="MESH-0"/>
-    <uid Droid="MESH-0"/>
-    <remarks>Unknown Meshtastic message type</remarks>
+    <remarks>Another test message</remarks>
   </detail>
 </event>
 
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<event version="2.0" uid="MESHTASTIC.2127704088.1265738440" how="m-g" time="2024-07-25T23:11:49.000Z" start="2024-07-25T23:11:49.000Z" stale="2024-07-25T23:21:49.000Z" type="a-u-G">
-  <point lat="0" lon="0" hae="0" ce="9999999" le="9999999"/>
+<event version="2.0" uid="MESHTASTIC.60911977.1973623075" how="m-g" time="2024-07-25T23:24:25.000Z" start="2024-07-25T23:24:25.000Z" stale="2024-07-25T23:34:25.000Z" type="a-f-G-U-C">
+  <point lat="27.9825201" lon="-82.4612511" hae="11" ce="10" le="10"/>
   <detail>
     <takv platform="Meshtastic" device="Node-RED" os="Node-RED" version="1.0"/>
-    <contact callsign="MESH-2127704088"/>
-    <uid Droid="MESH-2127704088"/>
-    <remarks>Unknown Meshtastic message type</remarks>
+    <contact callsign="MESH-60911977"/>
+    <uid Droid="MESH-60911977"/>
   </detail>
 </event>
