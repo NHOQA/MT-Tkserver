@@ -10,5 +10,4 @@ On a note from james that there was a mention of civtak preferring protobuf CoT 
 
 
 ******7/25/24 cont.
-If the goal is for RoC to send pins and to receive alarms from tripwire nodes. maybe that simplifies things. the meshtastic atak plugin keeps real time data going, but what does that look like. can we somehow just piggback the plugin data for atak and then just have a siomple script/flow to send pins and send alarms? will the plugin keep real time positions going? right now this script is just dropping a bunch of static markers
-. maybe the big thing here is to get the meshtastic plugin data coming back into takserver. the script to just send a pin is relatively simple i think
+If the goal is for RoC to send pins and to receive alarms from tripwire nodes. maybe that simplifies things. the meshtastic atak plugin keeps real time data going, but what does that look like. can we somehow just piggback the plugin data for atak and then just have a siomple script/flow to send pins and send alarms? will the plugin keep real time positions going? per the github, it might https://github.com/meshtastic/ATAK-Plugin. if thats the case, we just need to be able to send a static pin from RoC to field and get alarm pings from tripwire sensors
