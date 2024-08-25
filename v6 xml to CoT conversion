@@ -1,0 +1,113 @@
+// Get the current batteryInfo from flow context
+let batteryInfo = flow.get('batteryInfo') || {};
+
+function sanitizeString(str) {
+    if (typeof str !== 'string') {
+        str = String(str);
+    }
+    return str.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+}
+
+function convertToFirstFormat(inputMsg) {
+    const packet = inputMsg.payload.packet;
+
+    // Check if the port number is 10 or 67
+    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {
+        return null;
+    }
+
+    const now = new Date();
+    const fiveSecondsLater = new Date(now.getTime() + 5000);
+
+    let payload = packet.decoded.payload;
+    let remarks = "";
+
+    // Convert `packet.from` to hexadecimal format
+    let hexId = packet.from.toString(16).toUpperCase();
+    let deviceId = `TRIPWIRE-${hexId}`;
+
+    if (packet.decoded.portnum === 67) {
+        // Update stored battery level and timestamp for this device
+        batteryInfo[deviceId] = {
+            level: payload.deviceMetrics.batteryLevel,
+            timestamp: now.getTime()
+        };
+        flow.set('batteryInfo', batteryInfo); // Save back to flow context
+        node.warn(`Updated batteryInfo for ${deviceId}: ${JSON.stringify(batteryInfo[deviceId])}`);
+        return null;
+    }
+
+    if (packet.decoded.portnum === 10) {
+        if (typeof payload !== 'string') {
+            payload = JSON.stringify(payload);
+        }
+        remarks = `Tripwire sensor message: ${sanitizeString(payload)}`;
+
+        // Determine CoT marker color based on message content using standard CoT types
+        let cotType = "a-f-G-U-C"; // Default to a neutral type for normal state
+        let payloadText = payload.trim().toLowerCase(); // Normalize case and trim whitespace
+
+        // Log payload to see exact content
+        node.warn(`Payload content: "${payloadText}"`);
+
+        if (payloadText.includes("sensor daeb detected")) {
+            cotType = "a-f-G-E-V-S"; // Red marker: representing a sensor detection alert
+            node.warn(`Setting CoT type to Red for ${deviceId}`);
+        } else if (payloadText.includes("sensor daeb state: 0")) {
+            cotType = "a-f-G-U-S"; // Green marker: representing a sensor normal state
+            node.warn(`Setting CoT type to Green for ${deviceId}`);
+        }
+
+        batteryInfo = flow.get('batteryInfo') || {};
+        let batteryString = "Battery level unknown";
+
+        if (batteryInfo[deviceId] && batteryInfo[deviceId].level !== undefined) {
+            let batteryAge = Math.round((now.getTime() - batteryInfo[deviceId].timestamp) / 60000); // age in minutes
+            batteryString = `Battery: ${batteryInfo[deviceId].level}% (${batteryAge} min ago)`;
+        } else {
+            node.warn(`No battery info found for ${deviceId} at ${now.toISOString()}`);
+        }
+
+        msg.payload = {
+            "event": {
+                "_attributes": {
+                    "version": "2.0",
+                    "uid": deviceId,
+                    "type": cotType, // Set CoT type based on message content
+                    "how": "m-g",
+                    "time": now.toISOString(),
+                    "start": now.toISOString(),
+                    "stale": fiveSecondsLater.toISOString()
+                },
+                "point": {
+                    "_attributes": {
+                        "lat": "27.98767",
+                        "lon": "-82.46459",
+                        "hae": "0.0",
+                        "ce": "9999999.0",
+                        "le": "9999999.0"
+                    }
+                },
+                "detail": {
+                    "remarks": `${remarks}\n${batteryString}`
+                }
+            }
+        };
+
+        node.warn(`Generated CoT message for ${deviceId}: ${JSON.stringify(msg.payload)}`);
+
+        return msg;
+    }
+}
+
+// Main function body
+if (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {
+    const result = convertToFirstFormat(msg);
+    if (result) {
+        return result;
+    }
+}
+
+// If the message doesn't match the expected structure or port number, 
+// or if convertToFirstFormat returns null, the message is effectively ignored
+return null;
