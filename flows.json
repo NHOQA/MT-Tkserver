@@ -1,0 +1,649 @@
+[
+    {
+        "id": "3b7087a16f19437b",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "19d06378ca70646d",
+        "type": "aedes broker",
+        "z": "3b7087a16f19437b",
+        "name": "Broker",
+        "mqtt_port": 1883,
+        "mqtt_ws_bind": "port",
+        "mqtt_ws_port": "",
+        "mqtt_ws_path": "",
+        "cert": "",
+        "key": "",
+        "certname": "",
+        "keyname": "",
+        "persistence_bind": "memory",
+        "dburl": "",
+        "usetls": false,
+        "x": 90,
+        "y": 80,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "fbe2f1920186c0cd",
+        "type": "tak",
+        "z": "3b7087a16f19437b",
+        "name": "TAK",
+        "x": 870,
+        "y": 340,
+        "wires": [
+            [
+                "8455260be5b544af",
+                "130186b5a136489d"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "8455260be5b544af",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "TAK node CoT Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1140,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "ccd6d57011447c4e",
+        "type": "tcp request",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "server": "localhost",
+        "port": "8089",
+        "out": "sit",
+        "ret": "buffer",
+        "splitc": " ",
+        "newline": "",
+        "trim": false,
+        "tls": "8ffdde82eeb40ceb",
+        "x": 1210,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "61e87e1b81f49437",
+        "type": "mqtt in",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "topic": "natak/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "ef5bb54e270b13dc",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 80,
+        "y": 240,
+        "wires": [
+            [
+                "90da3261bd220c61"
+            ]
+        ]
+    },
+    {
+        "id": "90da3261bd220c61",
+        "type": "decode",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "x": 260,
+        "y": 240,
+        "wires": [
+            [
+                "95b3852087add6ca",
+                "49f000eccd5b7e21",
+                "f4caafbf7e43f32a"
+            ]
+        ]
+    },
+    {
+        "id": "205faac1547af084",
+        "type": "mqtt in",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "topic": "$sys/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "de4ce728dead85da",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 70,
+        "y": 640,
+        "wires": [
+            [
+                "cd18fd32e8ca7c3e"
+            ]
+        ]
+    },
+    {
+        "id": "cd18fd32e8ca7c3e",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "json mqtt debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 460,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "95b3852087add6ca",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "decode debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 460,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "d92d54a50bdbf627",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "xml output",
+        "func": "function createCotEvent(lat, lon, callsign, messageType = \"a-f-G-U-C\", how = \"m-g\") {\n    const now = new Date().toISOString();\n    return `\n<event version=\"2.0\" uid=\"${callsign}\" type=\"${messageType}\" time=\"${now}\" start=\"${now}\" stale=\"${now}\" how=\"${how}\">\n    <point lat=\"${lat}\" lon=\"${lon}\" hae=\"0\" ce=\"9999999.0\" le=\"9999999.0\"/>\n    <detail>\n        <takv device=\"Meshtastic\" platform=\"Meshtastic\" os=\"Meshtastic\"/>\n    </detail>\n</event>`;\n}\n\nfunction convertToCot(jsonMessage) {\n    const data = typeof jsonMessage === 'string' ? JSON.parse(jsonMessage) : jsonMessage;\n    const packet = data.packet;\n    const fromId = packet.from.toString();\n    \n    let cotEvent;\n    \n    if (packet.decoded && packet.decoded.payload) {\n        const payload = packet.decoded.payload;\n        \n        if (typeof payload === 'object' && 'latitudeI' in payload && 'longitudeI' in payload) {\n            // GPS message\n            const lat = payload.latitudeI / 1e7;\n            const lon = payload.longitudeI / 1e7;\n            cotEvent = createCotEvent(lat, lon, fromId);\n        } else if (typeof payload === 'string') {\n            // Text message\n            cotEvent = createCotEvent(0, 0, fromId);\n            cotEvent = cotEvent.replace('</detail>', `    <remarks>${payload}</remarks>\\n    </detail>`);\n        } else {\n            // Other types of messages (e.g., device metrics)\n            cotEvent = createCotEvent(0, 0, fromId);\n            cotEvent = cotEvent.replace('</detail>', `    <remarks>${JSON.stringify(payload)}</remarks>\\n    </detail>`);\n        }\n    } else {\n        // Default CoT event if payload structure is unexpected\n        cotEvent = createCotEvent(0, 0, fromId);\n    }\n    \n    return cotEvent;\n}\n\n// Main function body - this is what Node-RED will execute\ntry {\n    msg.payload = convertToCot(msg.payload);\n    return msg;\n} catch (error) {\n    node.error(\"Error converting to CoT: \" + error.message);\n    return null;\n}",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1110,
+        "y": 120,
+        "wires": [
+            [
+                "2fb6f4f1a3ed076f"
+            ]
+        ]
+    },
+    {
+        "id": "2fb6f4f1a3ed076f",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "xml debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1310,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "4d8dc49408efe071",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "Sensor to CoT message, works, bare bones",
+        "func": "function sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n    const now = new Date();\n    const tenMinutesLater = new Date(now.getTime() + 10 * 60000);\n\n    let payload = packet.decoded.payload;\n    if (typeof payload !== 'string') {\n        payload = JSON.stringify(payload);\n    }\n\n    msg.payload = {\n        \"event\": {\n            \"_attributes\": {\n                \"version\": \"2.0\",\n                \"uid\": `TRIPWIRE-${packet.from}`,\n                \"type\": \"a-f-G-U-S-T-A-C\",\n                \"how\": \"m-g\",\n                \"time\": now.toISOString(),\n                \"start\": now.toISOString(),\n                \"stale\": tenMinutesLater.toISOString()\n            },\n            \"point\": {\n                \"_attributes\": {\n                    \"lat\": \"27.98767\",\n                    \"lon\": \"-82.46459\",\n                    \"hae\": \"0.0\",\n                    \"ce\": \"9999999.0\",\n                    \"le\": \"9999999.0\"\n                }\n            },\n            \"detail\": {\n                \"remarks\": `Tripwire sensor activated: ${sanitizeString(payload)}`\n            }\n        }\n    };\n\n    return msg;\n}\n\n// Main function body\nreturn convertToFirstFormat(msg);",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 170,
+        "y": 800,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b6a869838ccdb5cc",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "Example Cot output from fxn, doesnt work",
+        "func": "msg.payload = {\n  \"event\": {\n    \"_attributes\": {\n      \"version\": \"2.0\",\n      \"uid\": \"TRIPWIRE-2823805675\",\n      \"type\": \"a-f-G-U-C\",\n      \"how\": \"m-g\",\n      \"time\": \"2024-07-28T17:44:32.000Z\",\n      \"start\": \"2024-07-28T17:44:32.000Z\",\n      \"stale\": \"2024-07-28T17:54:32.000Z\"\n    },\n    \"point\": {\n      \"_attributes\": {\n        \"lat\": \"27.98767\",\n        \"lon\": \"-82.46459\",\n        \"hae\": \"0.0\",\n        \"ce\": \"9999999.0\",\n        \"le\": \"9999999.0\"\n      }\n    },\n    \"detail\": {\n      \"sensor\": {\n        \"_attributes\": {\n          \"type\": \"tripwire\",\n          \"status\": \"active\"\n        }\n      },\n      \"intrusion\": {\n        \"_attributes\": {\n          \"detected\": \"true\",\n          \"time\": \"2024-07-28T17:44:32.000Z\",\n          \"message\": \"sensor daeb detected\\u0007\"\n        }\n      }\n    }\n  }\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 680,
+        "y": 60,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "130186b5a136489d",
+        "type": "tcp out",
+        "z": "3b7087a16f19437b",
+        "name": "",
+        "host": "localhost",
+        "port": "8089",
+        "beserver": "client",
+        "base64": false,
+        "end": false,
+        "tls": "8ffdde82eeb40ceb",
+        "x": 1130,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "b644042fb6b8603d",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "this is good base CoT format",
+        "func": "msg.payload = {\n    \"event\": {\n        \"_attributes\": {\n            \"version\": \"2.0\",\n            \"uid\": \"TRIPWIRE-2823805675\",\n            \"type\": \"a-f-G-U-S-T-A-C\",\n            \"how\": \"m-g\",\n            \"time\": \"2024-07-28T18:30:45.123Z\",\n            \"start\": \"2024-07-28T18:30:45.123Z\",\n            \"stale\": \"2024-07-28T18:40:45.123Z\"\n        },\n        \"point\": {\n            \"_attributes\": {\n                \"lat\": \"27.98767\",\n                \"lon\": \"-82.46459\",\n                \"hae\": \"0.0\",\n                \"ce\": \"9999999.0\",\n                \"le\": \"9999999.0\"\n            }\n        },\n        \"detail\": {\n            \"remarks\": \"Tripwire sensor activated: sensor daeb detected\"\n        }\n    }\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 140,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3be5689d25dcf3be",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "CoT conversion fxn output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "49f000eccd5b7e21",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "Sensor message to CoT",
+        "func": "//languate to ignore any message other than from port 10, sensor message\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n    \n    // Check if the port number is 10\n    if (packet.decoded.portnum !== 10) {\n        // If not, return null to effectively ignore this message\n        return null;\n    }\n\n    const now = new Date();\n    const tenMinutesLater = new Date(now.getTime() + 10 * 60000);\n\n    let payload = packet.decoded.payload;\n    if (typeof payload !== 'string') {\n        payload = JSON.stringify(payload);\n    }\n\n    msg.payload = {\n        \"event\": {\n            \"_attributes\": {\n                \"version\": \"2.0\",\n                \"uid\": `TRIPWIRE-${packet.from}`,\n                \"type\": \"a-f-G-U-S-T-A-C\",\n                \"how\": \"m-g\",\n                \"time\": now.toISOString(),\n                \"start\": now.toISOString(),\n                \"stale\": tenMinutesLater.toISOString()\n            },\n            \"point\": {\n                \"_attributes\": {\n                    \"lat\": \"27.98767\",\n                    \"lon\": \"-82.46459\",\n                    \"hae\": \"0.0\",\n                    \"ce\": \"9999999.0\",\n                    \"le\": \"9999999.0\"\n                }\n            },\n            \"detail\": {\n                \"remarks\": `Tripwire sensor activated: ${sanitizeString(payload)}`\n            }\n        }\n    };\n\n    return msg;\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 340,
+        "wires": [
+            [
+                "3be5689d25dcf3be"
+            ]
+        ]
+    },
+    {
+        "id": "f4caafbf7e43f32a",
+        "type": "switch",
+        "z": "3b7087a16f19437b",
+        "name": "Split by portnum",
+        "property": "payload.packet.decoded.portnum",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "4",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "67",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "10",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "t": "eq",
+                "v": "3",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 5,
+        "x": 720,
+        "y": 560,
+        "wires": [
+            [
+                "8f39352b10ad134c"
+            ],
+            [
+                "416d9328a827927b",
+                "8c7111287438ede2"
+            ],
+            [
+                "51869c4896dd5066",
+                "8c7111287438ede2"
+            ],
+            [
+                "07831226bd91157a"
+            ],
+            [
+                "d51ec1b2f4d853bc"
+            ]
+        ]
+    },
+    {
+        "id": "07831226bd91157a",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "Port 1 text message",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "51869c4896dd5066",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "port 10 sensor trigger and heartbeat",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1240,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "416d9328a827927b",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "Port 67 device telemetry",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1210,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "8f39352b10ad134c",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "port 4 nodeinfo",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1480,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "d51ec1b2f4d853bc",
+        "type": "debug",
+        "z": "3b7087a16f19437b",
+        "name": "port 3 position app",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "4035a9eb45eef209",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "Version1",
+        "func": "//languate to ignore any message other than from port 10, sensor message\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n    \n    // Check if the port number is 10\n    if (packet.decoded.portnum !== 10) {\n        // If not, return null to effectively ignore this message\n        return null;\n    }\n\n    const now = new Date();\n    const tenMinutesLater = new Date(now.getTime() + 10 * 60000);\n\n    let payload = packet.decoded.payload;\n    if (typeof payload !== 'string') {\n        payload = JSON.stringify(payload);\n    }\n\n    msg.payload = {\n        \"event\": {\n            \"_attributes\": {\n                \"version\": \"2.0\",\n                \"uid\": `TRIPWIRE-${packet.from}`,\n                \"type\": \"a-f-G-U-S-T-A-C\",\n                \"how\": \"m-g\",\n                \"time\": now.toISOString(),\n                \"start\": now.toISOString(),\n                \"stale\": tenMinutesLater.toISOString()\n            },\n            \"point\": {\n                \"_attributes\": {\n                    \"lat\": \"27.98767\",\n                    \"lon\": \"-82.46459\",\n                    \"hae\": \"0.0\",\n                    \"ce\": \"9999999.0\",\n                    \"le\": \"9999999.0\"\n                }\n            },\n            \"detail\": {\n                \"remarks\": `Tripwire sensor activated: ${sanitizeString(payload)}`\n            }\n        }\n    };\n\n    return msg;\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1420,
+        "y": 900,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "11f175f6b48f4e7b",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "version 2 battery attempt",
+        "func": "// Global object to store latest battery levels for each device\nlet batteryLevels = {};\n\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n    \n    // Check if the port number is 10 or 67\n    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {\n        // If not, return null to effectively ignore this message\n        return null;\n    }\n\n    const now = new Date();\n    const tenMinutesLater = new Date(now.getTime() + 10 * 60000);\n\n    let payload = packet.decoded.payload;\n    let remarks = \"\";\n    let deviceId = `TRIPWIRE-${packet.from}`;\n\n    if (packet.decoded.portnum === 67) {\n        // Update stored battery level for this device\n        batteryLevels[deviceId] = payload.batteryLevel;\n        // Don't generate a CoT message for port 67\n        return null;\n    }\n\n    if (packet.decoded.portnum === 10) {\n        if (typeof payload !== 'string') {\n            payload = JSON.stringify(payload);\n        }\n        remarks = `Tripwire sensor activated: ${sanitizeString(payload)}`;\n        \n        let batteryInfo = batteryLevels[deviceId] ? `Battery: ${batteryLevels[deviceId]}%` : \"Battery level unknown\";\n        \n        msg.payload = {\n            \"event\": {\n                \"_attributes\": {\n                    \"version\": \"2.0\",\n                    \"uid\": deviceId,\n                    \"type\": \"a-f-G-U-S-T-A-C\",\n                    \"how\": \"m-g\",\n                    \"time\": now.toISOString(),\n                    \"start\": now.toISOString(),\n                    \"stale\": tenMinutesLater.toISOString()\n                },\n                \"point\": {\n                    \"_attributes\": {\n                        \"lat\": \"27.98767\",\n                        \"lon\": \"-82.46459\",\n                        \"hae\": \"0.0\",\n                        \"ce\": \"9999999.0\",\n                        \"le\": \"9999999.0\"\n                    }\n                },\n                \"detail\": {\n                    \"remarks\": `${remarks}\\n${batteryInfo}`\n                }\n            }\n        };\n\n        return msg;\n    }\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1390,
+        "y": 840,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ce11b902b1d2a6d5",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "version3 debugging",
+        "func": "// Global object to store latest battery levels and timestamps for each device\nlet batteryInfo = {};\n\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n\n    // Check if the port number is 10 or 67\n    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {\n        // If not, return null to effectively ignore this message\n        return null;\n    }\n\n    const now = new Date();\n    // Changed to 5 seconds instead of 10 minutes\n    const fiveSecondsLater = new Date(now.getTime() + 5000);\n\n    let payload = packet.decoded.payload;\n    let remarks = \"\";\n    let deviceId = `TRIPWIRE-${packet.from}`;\n\n    if (packet.decoded.portnum === 67) {\n        // Update stored battery level and timestamp for this device\n        batteryInfo[deviceId] = {\n            level: payload.deviceMetrics.batteryLevel,\n            timestamp: now.getTime()\n        };\n        // Don't generate a CoT message for port 67\n        return null;\n    }\n\n    if (packet.decoded.portnum === 10) {\n        if (typeof payload !== 'string') {\n            payload = JSON.stringify(payload);\n        }\n        remarks = `Tripwire sensor activated: ${sanitizeString(payload)}`;\n\n        let batteryString = \"Battery level unknown\";\n        if (batteryInfo[deviceId]) {\n            let batteryAge = Math.round((now.getTime() - batteryInfo[deviceId].timestamp) / 60000); // age in minutes\n            batteryString = `Battery: ${batteryInfo[deviceId].level}% (${batteryAge} min ago)`;\n        }\n\n        msg.payload = {\n            \"event\": {\n                \"_attributes\": {\n                    \"version\": \"2.0\",\n                    \"uid\": deviceId,\n                    \"type\": \"a-f-G-U-S-T-A-C\",\n                    \"how\": \"m-g\",\n                    \"time\": now.toISOString(),\n                    \"start\": now.toISOString(),\n                    \"stale\": fiveSecondsLater.toISOString() // Changed to use fiveSecondsLater\n                },\n                \"point\": {\n                    \"_attributes\": {\n                        \"lat\": \"27.98767\",\n                        \"lon\": \"-82.46459\",\n                        \"hae\": \"0.0\",\n                        \"ce\": \"9999999.0\",\n                        \"le\": \"9999999.0\"\n                    }\n                },\n                \"detail\": {\n                    \"remarks\": `${remarks}\\n${batteryString}`\n                }\n            }\n        };\n\n        return msg;\n    }\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1410,
+        "y": 800,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d0982a2cd4b91ad7",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "V4 Battery works here, 5 sec stale",
+        "func": "// Get the current batteryInfo from flow context\nlet batteryInfo = flow.get('batteryInfo') || {};\n\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n\n    // Check if the port number is 10 or 67\n    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {\n        // If not, return null to effectively ignore this message\n        return null;\n    }\n\n    const now = new Date();\n    const fiveSecondsLater = new Date(now.getTime() + 5000);\n\n    let payload = packet.decoded.payload;\n    let remarks = \"\";\n    let deviceId = `TRIPWIRE-${packet.from}`;\n\n    if (packet.decoded.portnum === 67) {\n        // Update stored battery level and timestamp for this device\n        batteryInfo[deviceId] = {\n            level: payload.deviceMetrics.batteryLevel,\n            timestamp: now.getTime()\n        };\n        // Save the updated batteryInfo back to the flow context\n        flow.set('batteryInfo', batteryInfo);\n        // Log battery info for debugging\n        node.warn(`Updated batteryInfo for ${deviceId}: ${JSON.stringify(batteryInfo[deviceId])}`);\n        // Don't generate a CoT message for port 67\n        return null;\n    }\n\n    if (packet.decoded.portnum === 10) {\n        if (typeof payload !== 'string') {\n            payload = JSON.stringify(payload);\n        }\n        remarks = `Tripwire sensor message: ${sanitizeString(payload)}`;\n\n        // Retrieve the latest battery info for the specific deviceId\n        batteryInfo = flow.get('batteryInfo') || {};\n\n        let batteryString = \"Battery level unknown\";\n        if (batteryInfo[deviceId] && batteryInfo[deviceId].level !== undefined) {\n            let batteryAge = Math.round((now.getTime() - batteryInfo[deviceId].timestamp) / 60000); // age in minutes\n            batteryString = `Battery: ${batteryInfo[deviceId].level}% (${batteryAge} min ago)`;\n        } else {\n            node.warn(`No battery info found for ${deviceId} at ${now.toISOString()}`);\n        }\n\n        msg.payload = {\n            \"event\": {\n                \"_attributes\": {\n                    \"version\": \"2.0\",\n                    \"uid\": deviceId,\n                    \"type\": \"a-f-G-U-S-T-A-C\",\n                    \"how\": \"m-g\",\n                    \"time\": now.toISOString(),\n                    \"start\": now.toISOString(),\n                    \"stale\": fiveSecondsLater.toISOString()\n                },\n                \"point\": {\n                    \"_attributes\": {\n                        \"lat\": \"27.98767\",\n                        \"lon\": \"-82.46459\",\n                        \"hae\": \"0.0\",\n                        \"ce\": \"9999999.0\",\n                        \"le\": \"9999999.0\"\n                    }\n                },\n                \"detail\": {\n                    \"remarks\": `${remarks}\\n${batteryString}`\n                }\n            }\n        };\n\n        // Log final CoT message for debugging\n        node.warn(`Generated CoT message for ${deviceId}: ${JSON.stringify(msg.payload)}`);\n\n        return msg;\n    }\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1400,
+        "y": 760,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2c2ae68028ca0f65",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "V5 Node ID displayed in hex",
+        "func": "// Get the current batteryInfo from flow context\nlet batteryInfo = flow.get('batteryInfo') || {};\n\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n\n    // Check if the port number is 10 or 67\n    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {\n        return null;\n    }\n\n    const now = new Date();\n    const fiveSecondsLater = new Date(now.getTime() + 5000);\n\n    let payload = packet.decoded.payload;\n    let remarks = \"\";\n\n    // Convert `packet.from` to hexadecimal format\n    let hexId = packet.from.toString(16).toUpperCase();\n    let deviceId = `TRIPWIRE-${hexId}`;\n\n    if (packet.decoded.portnum === 67) {\n        // Update stored battery level and timestamp for this device\n        batteryInfo[deviceId] = {\n            level: payload.deviceMetrics.batteryLevel,\n            timestamp: now.getTime()\n        };\n        flow.set('batteryInfo', batteryInfo); // Save back to flow context\n        node.warn(`Updated batteryInfo for ${deviceId}: ${JSON.stringify(batteryInfo[deviceId])}`);\n        return null;\n    }\n\n    if (packet.decoded.portnum === 10) {\n        if (typeof payload !== 'string') {\n            payload = JSON.stringify(payload);\n        }\n        remarks = `Tripwire sensor message: ${sanitizeString(payload)}`;\n\n        batteryInfo = flow.get('batteryInfo') || {};\n        let batteryString = \"Battery level unknown\";\n\n        if (batteryInfo[deviceId] && batteryInfo[deviceId].level !== undefined) {\n            let batteryAge = Math.round((now.getTime() - batteryInfo[deviceId].timestamp) / 60000); // age in minutes\n            batteryString = `Battery: ${batteryInfo[deviceId].level}% (${batteryAge} min ago)`;\n        } else {\n            node.warn(`No battery info found for ${deviceId} at ${now.toISOString()}`);\n        }\n\n        msg.payload = {\n            \"event\": {\n                \"_attributes\": {\n                    \"version\": \"2.0\",\n                    \"uid\": deviceId,\n                    \"type\": \"a-f-G-U-S-T-A-C\",\n                    \"how\": \"m-g\",\n                    \"time\": now.toISOString(),\n                    \"start\": now.toISOString(),\n                    \"stale\": fiveSecondsLater.toISOString()\n                },\n                \"point\": {\n                    \"_attributes\": {\n                        \"lat\": \"27.98767\",\n                        \"lon\": \"-82.46459\",\n                        \"hae\": \"0.0\",\n                        \"ce\": \"9999999.0\",\n                        \"le\": \"9999999.0\"\n                    }\n                },\n                \"detail\": {\n                    \"remarks\": `${remarks}\\n${batteryString}`\n                }\n            }\n        };\n\n        node.warn(`Generated CoT message for ${deviceId}: ${JSON.stringify(msg.payload)}`);\n\n        return msg;\n    }\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1380,
+        "y": 720,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8c7111287438ede2",
+        "type": "function",
+        "z": "3b7087a16f19437b",
+        "name": "V6 color change attempt",
+        "func": "// Get the current batteryInfo from flow context\nlet batteryInfo = flow.get('batteryInfo') || {};\n\nfunction sanitizeString(str) {\n    if (typeof str !== 'string') {\n        str = String(str);\n    }\n    return str.replace(/[\\x00-\\x1F\\x7F-\\x9F]/g, '');\n}\n\nfunction convertToFirstFormat(inputMsg) {\n    const packet = inputMsg.payload.packet;\n\n    // Check if the port number is 10 or 67\n    if (packet.decoded.portnum !== 10 && packet.decoded.portnum !== 67) {\n        return null;\n    }\n\n    const now = new Date();\n    const fiveSecondsLater = new Date(now.getTime() + 5000);\n\n    let payload = packet.decoded.payload;\n    let remarks = \"\";\n\n    // Convert `packet.from` to hexadecimal format\n    let hexId = packet.from.toString(16).toUpperCase();\n    let deviceId = `TRIPWIRE-${hexId}`;\n\n    if (packet.decoded.portnum === 67) {\n        // Update stored battery level and timestamp for this device\n        batteryInfo[deviceId] = {\n            level: payload.deviceMetrics.batteryLevel,\n            timestamp: now.getTime()\n        };\n        flow.set('batteryInfo', batteryInfo); // Save back to flow context\n        node.warn(`Updated batteryInfo for ${deviceId}: ${JSON.stringify(batteryInfo[deviceId])}`);\n        return null;\n    }\n\n    if (packet.decoded.portnum === 10) {\n        if (typeof payload !== 'string') {\n            payload = JSON.stringify(payload);\n        }\n        remarks = `Tripwire sensor message: ${sanitizeString(payload)}`;\n\n        // Determine CoT marker color based on message content using standard CoT types\n        let cotType = \"a-f-G-U-C\"; // Default to a neutral type for normal state\n        let payloadText = payload.trim().toLowerCase(); // Normalize case and trim whitespace\n\n        // Log payload to see exact content\n        node.warn(`Payload content: \"${payloadText}\"`);\n\n        if (payloadText.includes(\"sensor daeb detected\")) {\n            cotType = \"a-f-G-E-V-S\"; // Red marker: representing a sensor detection alert\n            node.warn(`Setting CoT type to Red for ${deviceId}`);\n        } else if (payloadText.includes(\"sensor daeb state: 0\")) {\n            cotType = \"a-f-G-U-S\"; // Green marker: representing a sensor normal state\n            node.warn(`Setting CoT type to Green for ${deviceId}`);\n        }\n\n        batteryInfo = flow.get('batteryInfo') || {};\n        let batteryString = \"Battery level unknown\";\n\n        if (batteryInfo[deviceId] && batteryInfo[deviceId].level !== undefined) {\n            let batteryAge = Math.round((now.getTime() - batteryInfo[deviceId].timestamp) / 60000); // age in minutes\n            batteryString = `Battery: ${batteryInfo[deviceId].level}% (${batteryAge} min ago)`;\n        } else {\n            node.warn(`No battery info found for ${deviceId} at ${now.toISOString()}`);\n        }\n\n        msg.payload = {\n            \"event\": {\n                \"_attributes\": {\n                    \"version\": \"2.0\",\n                    \"uid\": deviceId,\n                    \"type\": cotType, // Set CoT type based on message content\n                    \"how\": \"m-g\",\n                    \"time\": now.toISOString(),\n                    \"start\": now.toISOString(),\n                    \"stale\": fiveSecondsLater.toISOString()\n                },\n                \"point\": {\n                    \"_attributes\": {\n                        \"lat\": \"27.98767\",\n                        \"lon\": \"-82.46459\",\n                        \"hae\": \"0.0\",\n                        \"ce\": \"9999999.0\",\n                        \"le\": \"9999999.0\"\n                    }\n                },\n                \"detail\": {\n                    \"remarks\": `${remarks}\\n${batteryString}`\n                }\n            }\n        };\n\n        node.warn(`Generated CoT message for ${deviceId}: ${JSON.stringify(msg.payload)}`);\n\n        return msg;\n    }\n}\n\n// Main function body\nif (msg.payload && msg.payload.packet && msg.payload.packet.decoded) {\n    const result = convertToFirstFormat(msg);\n    if (result) {\n        return result;\n    }\n}\n\n// If the message doesn't match the expected structure or port number, \n// or if convertToFirstFormat returns null, the message is effectively ignored\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1430,
+        "y": 500,
+        "wires": [
+            [
+                "fbe2f1920186c0cd"
+            ]
+        ]
+    },
+    {
+        "id": "8ffdde82eeb40ceb",
+        "type": "tls-config",
+        "name": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "nodered.pem",
+        "keyname": "noderedkey2.pem",
+        "caname": "nodered-trusted.pem",
+        "servername": "",
+        "verifyservercert": false,
+        "alpnprotocol": ""
+    },
+    {
+        "id": "ef5bb54e270b13dc",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "de4ce728dead85da",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
